@@ -35,5 +35,7 @@ const result = await runReleaseCli({
 	},
 })
 
-console.log(result.message)
+// Diagnostics on failure go to stderr; stdout stays clean for pipeable output.
+if (result.code === 0) console.log(result.message)
+else console.error(result.message)
 process.exit(result.code)

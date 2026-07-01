@@ -26,8 +26,8 @@ break, not a continuation of any upstream `2.x` (there was none).
   can be previewed. Fails closed on a bad target: refuses `--live` without a token,
   refuses a missing/malformed `--repo`, and refuses an `--owner` that disagrees
   with `--repo` rather than releasing against the wrong repo. A GitHub API error
-  reports a clean message and exit `1` instead of a raw stack. See the README
-  "Creating releases" section.
+  reports a clean message and exits with status `1` instead of a raw stack. See
+  the README "Creating releases" section.
 
 ## [2.2.0-next.1] - 2026-06-30
 

@@ -18,6 +18,8 @@ describe('bin/release.js shim', () => {
 		}
 		expect(err).toBeDefined()
 		expect(err.code).toBe(2)
-		expect(String(err.stdout)).toMatch(/repo/i)
+		// Errors go to stderr so stdout stays clean for pipeable output.
+		expect(String(err.stderr)).toMatch(/repo/i)
+		expect(String(err.stdout)).not.toMatch(/repo/i)
 	})
 })

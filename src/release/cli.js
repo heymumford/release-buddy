@@ -142,15 +142,14 @@ export const runReleaseCli = async ({ argv, env, log, now, deps }) => {
 				: `Released ${result.version}: ${result.release.url}`,
 		}
 	} catch (err) {
-		// GitHub API failure (bad repo, auth, rate limit, network). Report a clean
-		// line + exit 1 instead of leaking a raw stack trace. status is octokit's.
-		const status = err && err.status ? ` (HTTP ${err.status})` : ''
-		const reason = (err && err.message) || String(err)
-		return {
-			code: 1,
-			dryRun,
-			released: false,
-			message: `GitHub request failed for ${opts.owner}/${opts.repo}${status}: ${reason}`,
-		}
+		// Report a clean line + exit 1 instead of leaking a raw stack trace. An
+		// octokit HTTP error carries a status; anything else (e.g. an unparseable
+		// version) is an internal failure and must not be blamed on GitHub.
+		const status = err?.status
+		const reason = err?.message || String(err)
+		const message = status
+			? `GitHub request failed for ${opts.owner}/${opts.repo} (HTTP ${status}): ${reason}`
+			: `Release failed for ${opts.owner}/${opts.repo}: ${reason}`
+		return { code: 1, dryRun, released: false, message }
 	}
 }

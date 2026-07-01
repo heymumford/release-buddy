@@ -225,6 +225,24 @@ describe('runReleaseCli — argument validation', () => {
 		expect(deps.createGithubRelease).not.toHaveBeenCalled()
 	})
 
+	test('an internal (non-HTTP) failure is not mislabeled as a GitHub request failure', async () => {
+		const deps = baseDeps({
+			githubCommitsSinceLastTag: vi.fn(async () => {
+				throw new Error('boom internal') // no .status -> not a network/API error
+			}),
+		})
+		const result = await runReleaseCli({
+			argv: ['--repo', 'acme/widget'],
+			env: {},
+			log: makeLog(),
+			now: fixedNow,
+			deps,
+		})
+		expect(result.code).toBe(1)
+		expect(result.message).toMatch(/boom internal/)
+		expect(result.message).not.toMatch(/github request failed/i)
+	})
+
 	test('no releasable commits: exits 0, creates nothing even in --live', async () => {
 		const deps = baseDeps({
 			githubCommitsSinceLastTag: vi.fn(async () => ({
