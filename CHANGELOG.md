@@ -11,47 +11,47 @@ break, not a continuation of any upstream `2.x` (there was none).
 
 ## [Unreleased]
 
-### Added
+## [2.2.0] - 2026-07-01
 
-- Foundation for release **creation** (ADR 0004): conventional-commits parsing
-  with semver bump detection, next-version computation, Keep a Changelog section
-  generation, and release-creation adapters (GitHub + GitLab), plus a pure planRelease
-  orchestrator (commits + version -> next version + changelog). Pure, fully unit-tested building blocks.
-- **`release` command** (`bin/release.js`, exposed as the `release-buddy` bin).
-  Wires the creation toolkit to a runnable trigger for a GitHub repo: reads the
-  commits since the last tag, computes the next version and changelog, and — only
-  with `--live` and a `GITHUB_TOKEN` — creates the GitHub release. **Dry run is
-  the default:** without `--live` nothing is created and the network release API
-  is never called; the dry run prints the changelog it would publish so the notes
-  can be previewed. Fails closed on a bad target: refuses `--live` without a token,
-  refuses a missing/malformed `--repo`, and refuses an `--owner` that disagrees
-  with `--repo` rather than releasing against the wrong repo. A GitHub API error
-  reports a clean message and exits with status `1` instead of a raw stack. See
-  the README "Creating releases" section.
-
-## [2.2.0-next.1] - 2026-06-30
+First stable release of the maintained fork since the `v2.1.0-next.1`
+pre-release. Adds GitLab support and a release-**creation** toolkit + CLI
+alongside the Slack/email/Confluence notifier, and hardens delivery reliability.
+The intermediate `2.1.0-next.2` and `2.2.0-next.1` steps were never tagged; their
+changes are folded in here.
 
 ### Added
 
-- **GitLab support.** The same service now also handles GitLab release webhooks
-  (`POST /gitlab`), verified by a secret token, reading `releaseBuddy.config.json`
-  via the GitLab API and notifying through the shared notifier core. Onboard a
-  project or group via a webhook (see README). GitHub and GitLab share one deploy.
+- **GitLab release support.** The same service now also handles GitLab release
+  webhooks (`POST /gitlab`), verified by a secret token, reading
+  `releaseBuddy.config.json` via the GitLab API and notifying through the shared
+  core. GitHub and GitLab share one deploy.
+- **Release-creation toolkit (ADR 0004):** conventional-commit parsing with
+  semver bump detection, next-version computation, Keep a Changelog section
+  generation, GitHub + GitLab release-create adapters, and a pure `planRelease`
+  orchestrator (commits + version → next version + changelog).
+- **`release` CLI** (`bin/release.js`, exposed as the `release-buddy` bin). Turns
+  commit history into a version, changelog, and GitHub release. **Dry run is the
+  default** — without `--live` nothing is created and the release API is never
+  called; the dry run prints the changelog it would publish. Fails closed on a bad
+  target: refuses `--live` without a `GITHUB_TOKEN`, a missing/malformed `--repo`,
+  or an `--owner` that disagrees with `--repo`. A GitHub API error reports a clean
+  message and exits with status `1` instead of a raw stack. Creates GitHub
+  releases only for now.
+- **Delivery reliability hardening.** Bounded-backoff retry on transient
+  (429/5xx/network) notifier failures; JSON-schema validation of
+  `releaseBuddy.config.json` (a typo fails loudly; unknown keys tolerated); a
+  generic HTTP webhook notifier (Discord/Opsgenie/raw-Teams via one code path);
+  structured log context carrying repo + tag; and Prometheus metrics at
+  `GET /metrics`.
+- **`slackWebhookUrlEnv`** config field: the Slack webhook is read from a named
+  environment variable at runtime, so the secret is never committed. A literal
+  `slackWebhookUrl` still works for backward compatibility.
 
 ### Changed
 
 - Refactored the enabled-notifier logic into a shared, platform-agnostic
   `dispatch` core consumed by both the GitHub (Probot) and GitLab adapters. No
   behavior change on the GitHub path.
-
-## [2.1.0-next.2] - 2026-06-30
-
-### Added
-
-- `slackWebhookUrlEnv` config field: the Slack webhook is read from a named
-  environment variable at runtime, so the secret is never committed. A literal
-  `slackWebhookUrl` still works for backward compatibility. Committing a webhook
-  is a leaked credential (and is rejected by push protection).
 
 ## [2.1.0-next.1] - 2026-06-30
 
@@ -96,7 +96,6 @@ the `-next` suffix marks it as a pre-release of the `2.1` line.
 - Scrubbed a live Slack Incoming Webhook URL and personal contact data that
   upstream committed to public history in 2018.
 
-[Unreleased]: https://github.com/heymumford/release-buddy/compare/v2.2.0-next.1...HEAD
-[2.2.0-next.1]: https://github.com/heymumford/release-buddy/compare/v2.1.0-next.2...v2.2.0-next.1
-[2.1.0-next.2]: https://github.com/heymumford/release-buddy/compare/v2.1.0-next.1...v2.1.0-next.2
+[Unreleased]: https://github.com/heymumford/release-buddy/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/heymumford/release-buddy/compare/v2.1.0-next.1...v2.2.0
 [2.1.0-next.1]: https://github.com/heymumford/release-buddy/releases/tag/v2.1.0-next.1
