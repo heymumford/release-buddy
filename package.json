@@ -42,7 +42,7 @@
 	},
 	"devDependencies": {
 		"@vitest/coverage-v8": "^4.0.16",
-		"markdownlint-cli2": "^0.22.1",
+		"markdownlint-cli2": "^0.23.0",
 		"nodemon": "^3.1.9",
 		"prettier": "^3.9.4",
 		"smee-client": "^5.0.0",
