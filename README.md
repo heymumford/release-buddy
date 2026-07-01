@@ -122,6 +122,11 @@ server's environment (see `.env.example`).
 Then publish a release at `https://github.com/{owner}/{repo}/releases/new`. The
 tag, title, and markdown body are used in every notification.
 
+## Roadmap
+
+Where this fork is headed — and what it deliberately won't do — is in
+[`docs/ROADMAP.md`](docs/ROADMAP.md).
+
 ## Contributing
 
 Bugs and ideas welcome — open an issue or a PR. See the
