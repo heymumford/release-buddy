@@ -14,9 +14,10 @@ break, not a continuation of any upstream `2.x` (there was none).
 ### Added
 
 - Foundation for release **creation** (ADR 0004): conventional-commits parsing
-  with semver bump detection, next-version computation, and Keep a Changelog
-  section generation. Pure, fully unit-tested building blocks; not yet wired into
-  a command.
+  with semver bump detection, next-version computation, Keep a Changelog section
+  generation, and release-creation adapters for GitHub (octokit) and GitLab
+  (REST API). Pure, fully unit-tested building blocks; not yet wired into a
+  command.
 
 ## [2.2.0-next.1] - 2026-06-30
 
