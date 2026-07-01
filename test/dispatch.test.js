@@ -9,6 +9,7 @@ import slackNotify from '../src/slackNotify.js'
 import sendMail from '../src/sendMail.js'
 import writeConfluence from '../src/writeConfluence.js'
 import webhookNotify from '../src/webhookNotify.js'
+import { render, reset } from '../src/metrics.js'
 import dispatch from '../src/dispatch.js'
 
 const log = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
@@ -93,6 +94,18 @@ describe('dispatch (shared notifier core)', () => {
 		expect(parent.child).toHaveBeenCalledWith({ repo: 'repo', tag: 'v1.0.0' })
 		expect(child.info).toHaveBeenCalled()
 		expect(parent.info).not.toHaveBeenCalled()
+	})
+
+	test('increments a success metric, then a failure metric', async () => {
+		reset()
+		slackNotify.mockResolvedValue(undefined)
+		await run({ slackSettings: { enabled: true } })
+		expect(render()).toContain('notifications_sent_total{channel="slack",result="success"} 1')
+
+		reset()
+		slackNotify.mockRejectedValue(new Error('Missing Slack webhook'))
+		await run({ slackSettings: { enabled: true } })
+		expect(render()).toContain('notifications_sent_total{channel="slack",result="failure"} 1')
 	})
 
 	test('falls back to the plain logger when child() is absent', async () => {

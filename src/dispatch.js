@@ -3,6 +3,7 @@ import sendMail from './sendMail.js'
 import writeConfluence from './writeConfluence.js'
 import webhookNotify from './webhookNotify.js'
 import { withRetry } from './retry.js'
+import { inc } from './metrics.js'
 
 // Log a notifier failure without a second throw. SendGrid surfaces validation
 // problems under error.response.body.errors, but network/timeout errors have no
@@ -31,51 +32,59 @@ const deliver = (fn) => withRetry(fn, { retries: RETRIES, isRetryable: isTransie
 /**
  * Run the enabled notifiers for a release. Platform-agnostic: both the GitHub
  * (Probot) and GitLab (webhook) adapters normalize their event to these inputs.
- * All log lines carry {repo, tag} so a drop or double-send is greppable. Each
- * notifier retries transient failures; a failure in one is logged and never
- * stops the others.
+ * All log lines carry {repo, tag}; each notifier retries transient failures,
+ * records a metric, and never stops the others on failure.
  */
 export default async function dispatch({ log, config, releaseDetails, repositoryName }) {
 	const { slackSettings, emailSettings, confluenceSettings, webhookSettings, teamName } = config
 
-	// Structured context: bind repo + tag to every log line for this release.
 	const clog = log.child ? log.child({ repo: repositoryName, tag: releaseDetails?.version }) : log
 
-	if (slackSettings?.enabled === true) {
+	// One path per notifier: retry, log with context, record a metric.
+	const notify = async (channel, fn, okMessage, errMessage) => {
 		try {
-			await deliver(() => slackNotify(slackSettings, repositoryName, releaseDetails, teamName))
-			clog.info('Slack notifications delivered.')
+			await deliver(fn)
+			clog.info(okMessage)
+			inc('notifications_sent_total', { channel, result: 'success' })
 		} catch (error) {
-			logError(clog, 'Error delivering Slack notification.', error)
+			logError(clog, errMessage, error)
+			inc('notifications_sent_total', { channel, result: 'failure' })
 		}
+	}
+
+	if (slackSettings?.enabled === true) {
+		await notify(
+			'slack',
+			() => slackNotify(slackSettings, repositoryName, releaseDetails, teamName),
+			'Slack notifications delivered.',
+			'Error delivering Slack notification.'
+		)
 	}
 
 	if (emailSettings?.enabled === true) {
-		try {
-			await deliver(() => sendMail(emailSettings, releaseDetails, repositoryName, teamName))
-			clog.info('Email notifications delivered.')
-		} catch (error) {
-			logError(clog, 'Error sending email.', error)
-		}
+		await notify(
+			'email',
+			() => sendMail(emailSettings, releaseDetails, repositoryName, teamName),
+			'Email notifications delivered.',
+			'Error sending email.'
+		)
 	}
 
 	if (confluenceSettings?.enabled === true) {
-		try {
-			await deliver(() =>
-				writeConfluence(confluenceSettings, releaseDetails, repositoryName, teamName)
-			)
-			clog.info('Confluence wiki page written.')
-		} catch (error) {
-			logError(clog, 'Error writing Confluence wiki.', error)
-		}
+		await notify(
+			'confluence',
+			() => writeConfluence(confluenceSettings, releaseDetails, repositoryName, teamName),
+			'Confluence wiki page written.',
+			'Error writing Confluence wiki.'
+		)
 	}
 
 	if (webhookSettings?.enabled === true) {
-		try {
-			await deliver(() => webhookNotify(webhookSettings, repositoryName, releaseDetails, teamName))
-			clog.info('Webhook notification delivered.')
-		} catch (error) {
-			logError(clog, 'Error delivering webhook notification.', error)
-		}
+		await notify(
+			'webhook',
+			() => webhookNotify(webhookSettings, repositoryName, releaseDetails, teamName),
+			'Webhook notification delivered.',
+			'Error delivering webhook notification.'
+		)
 	}
 }

@@ -1,6 +1,7 @@
 import getConfig from './src/getConfig.js'
 import dispatch from './src/dispatch.js'
 import createGitlabHandler from './src/gitlab/webhook.js'
+import { createMetricsHandler } from './src/metrics.js'
 
 const CONFIG_PATH = 'releaseBuddy.config.json'
 
@@ -51,6 +52,7 @@ export default (app, { addHandler } = {}) => {
 	// function directly, so guard it.
 	if (typeof addHandler === 'function') {
 		addHandler(createGitlabHandler(app.log))
-		app.log.info('GitLab webhook handler registered at POST /gitlab.')
+		addHandler(createMetricsHandler())
+		app.log.info('Registered POST /gitlab and GET /metrics handlers.')
 	}
 }
