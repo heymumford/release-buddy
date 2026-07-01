@@ -1,13 +1,16 @@
 # Release Buddy
 
-Release Buddy is a [GitHub App](https://probot.github.io) that fans out release
-notes when you publish a GitHub release. When a release is published, it can:
+Release Buddy handles two jobs around a software release:
 
-- post to one or more **Slack** channels,
-- send an **email** via SendGrid, and
-- create a **Confluence** page.
-
-Each notifier is opt-in per repository through a `releaseBuddy.config.json` file.
+- **Announce a release.** When you publish a GitHub release — or send a GitLab
+  release webhook — it fans the notes out to one or more **Slack** channels, an
+  **email** via SendGrid, and a **Confluence** page. Each channel is opt-in per
+  repository through a tolerant `releaseBuddy.config.json`. Runs as a
+  [Probot](https://probot.github.io) GitHub App plus a GitLab webhook endpoint.
+- **Create a release.** A `release` command reads the commits since the last tag,
+  computes the next version and changelog from the conventional-commit history,
+  and cuts the GitHub release — **dry run by default**. See
+  [Creating releases (CLI)](#creating-releases-cli).
 
 > **Maintained fork.** This is a maintained continuation of
 > [`ecobee/release-buddy`](https://github.com/ecobee/release-buddy) (ISC),
@@ -55,12 +58,18 @@ neutral release object and handed to a shared notifier core:
 
 Draft and pre-release publishes are ignored so they don't page the whole team.
 
+The release-**creation** path is separate and runnable on demand: the `release`
+command (`bin/release.js` → `src/release/*`) turns commit history into a version,
+changelog, and GitHub release, and is documented next.
+
 ## Creating releases (CLI)
 
 Beyond _reacting_ to releases, Release Buddy can _create_ them. The `release`
 command reads the commits since the last tag on a GitHub repo, derives the next
-version and changelog from the conventional-commit history (ADR 0004), and
-creates the GitHub release.
+version and changelog from the conventional-commit history
+([ADR 0004](docs/adr/0004-release-creation-toolkit.md)), and creates the GitHub
+release. The command creates **GitHub** releases only; a GitLab release adapter
+exists in the toolkit but is not yet wired to the command.
 
 **Dry run is the default — nothing is created unless you pass `--live`.**
 
