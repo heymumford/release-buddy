@@ -55,4 +55,20 @@ describe('dispatch (shared notifier core)', () => {
 		await run({ slackSettings: { enabled: true } })
 		expect(slackNotify).toHaveBeenCalledWith({ enabled: true }, 'repo', releaseDetails, undefined)
 	})
+
+	test('retries a transient (5xx) notifier failure then succeeds', async () => {
+		slackNotify
+			.mockRejectedValueOnce(new Error('Slack webhook responded 503'))
+			.mockResolvedValueOnce(undefined)
+		await run({ slackSettings: { enabled: true } })
+		expect(slackNotify).toHaveBeenCalledTimes(2)
+		expect(log.error).not.toHaveBeenCalled()
+	})
+
+	test('does not retry a permanent notifier failure (fails fast, logged once)', async () => {
+		slackNotify.mockRejectedValue(new Error('Missing Slack webhook: set slackWebhookUrlEnv'))
+		await run({ slackSettings: { enabled: true } })
+		expect(slackNotify).toHaveBeenCalledTimes(1)
+		expect(log.error).toHaveBeenCalledTimes(1)
+	})
 })
