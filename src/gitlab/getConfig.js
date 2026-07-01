@@ -1,3 +1,5 @@
+import { validateConfig } from '../configSchema.js'
+
 /**
  * Read and parse releaseBuddy.config.json from a GitLab project via the REST
  * API (the webhook payload carries no repo files). Returns the parsed object,
@@ -35,7 +37,13 @@ const getConfig = async (log, projectId, ref, configPath) => {
 			)
 			return undefined
 		}
-		return JSON.parse(await res.text())
+		const parsed = JSON.parse(await res.text())
+		const { valid, errors } = validateConfig(parsed)
+		if (!valid) {
+			log.warn({ errors }, `${configPath} failed validation; skipping.`)
+			return undefined
+		}
+		return parsed
 	} catch (error) {
 		log.warn({ err: error }, `Failed to load ${configPath} from GitLab.`)
 		return undefined

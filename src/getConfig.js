@@ -1,6 +1,9 @@
+import { validateConfig } from './configSchema.js'
+
 /**
  * Read and parse the repository's Release Buddy config file.
- * Returns the parsed object, or undefined if it is missing or invalid.
+ * Returns the parsed object, or undefined if it is missing, unparseable, or
+ * fails schema validation (logged loudly rather than silently mis-notifying).
  *
  * @param {import('probot').Logger} log
  * @param {import('probot').Context} context
@@ -20,6 +23,13 @@ const getConfig = async (log, context, configPath) => {
 		}
 
 		const parsed = JSON.parse(Buffer.from(file.data.content, 'base64').toString('utf8'))
+
+		const { valid, errors } = validateConfig(parsed)
+		if (!valid) {
+			log.warn({ errors }, `${configPath} failed validation; skipping.`)
+			return undefined
+		}
+
 		log.info('Configuration loaded.')
 		return parsed
 	} catch (error) {
