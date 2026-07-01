@@ -44,3 +44,6 @@ disclosure.
   push protection.
 - Draft and pre-release publishes are ignored, reducing accidental notification
   fan-out.
+- The GitLab webhook is authenticated by a constant-time compare of the
+  `X-Gitlab-Token` header against `GITLAB_WEBHOOK_SECRET`; the GitLab API token
+  (`GITLAB_TOKEN`) needs only `read_repository`. Both live in the environment.

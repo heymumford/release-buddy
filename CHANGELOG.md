@@ -11,6 +11,21 @@ break, not a continuation of any upstream `2.x` (there was none).
 
 ## [Unreleased]
 
+## [2.2.0-next.1] - 2026-06-30
+
+### Added
+
+- **GitLab support.** The same service now also handles GitLab release webhooks
+  (`POST /gitlab`), verified by a secret token, reading `releaseBuddy.config.json`
+  via the GitLab API and notifying through the shared notifier core. Onboard a
+  project or group via a webhook (see README). GitHub and GitLab share one deploy.
+
+### Changed
+
+- Refactored the enabled-notifier logic into a shared, platform-agnostic
+  `dispatch` core consumed by both the GitHub (Probot) and GitLab adapters. No
+  behavior change on the GitHub path.
+
 ## [2.1.0-next.2] - 2026-06-30
 
 ### Added
@@ -63,6 +78,7 @@ the `-next` suffix marks it as a pre-release of the `2.1` line.
 - Scrubbed a live Slack Incoming Webhook URL and personal contact data that
   upstream committed to public history in 2018.
 
-[Unreleased]: https://github.com/heymumford/release-buddy/compare/v2.1.0-next.2...HEAD
+[Unreleased]: https://github.com/heymumford/release-buddy/compare/v2.2.0-next.1...HEAD
+[2.2.0-next.1]: https://github.com/heymumford/release-buddy/compare/v2.1.0-next.2...v2.2.0-next.1
 [2.1.0-next.2]: https://github.com/heymumford/release-buddy/compare/v2.1.0-next.1...v2.1.0-next.2
 [2.1.0-next.1]: https://github.com/heymumford/release-buddy/releases/tag/v2.1.0-next.1
