@@ -39,17 +39,40 @@ for how to report vulnerabilities.
 
 ## How it works
 
-`index.js` is the Probot app. It listens for `release.published` and dispatches
-to the enabled notifiers in `src/`:
+A GitHub release (via Probot) or a GitLab release webhook is normalized to a
+neutral release object and handed to a shared notifier core:
 
-| File                     | Responsibility                                          |
-| ------------------------ | ------------------------------------------------------- |
-| `src/getConfig.js`       | Read `releaseBuddy.config.json` from the releasing repo |
-| `src/slackNotify.js`     | Post to every configured Slack channel                  |
-| `src/sendMail.js`        | Send the release notes via SendGrid                     |
-| `src/writeConfluence.js` | Create a Confluence page for the release                |
+| File                      | Responsibility                                                 |
+| ------------------------- | -------------------------------------------------------------- |
+| `index.js`                | GitHub adapter (Probot `release.published`) + mounts `/gitlab` |
+| `src/getConfig.js`        | Read `releaseBuddy.config.json` from a GitHub repo             |
+| `src/gitlab/webhook.js`   | GitLab adapter: verify token, normalize, dispatch              |
+| `src/gitlab/getConfig.js` | Read `releaseBuddy.config.json` from a GitLab project (API)    |
+| `src/dispatch.js`         | Shared: run the enabled notifiers, isolate failures            |
+| `src/slackNotify.js`      | Post to every configured Slack channel                         |
+| `src/sendMail.js`         | Send the release notes via SendGrid                            |
+| `src/writeConfluence.js`  | Create a Confluence page for the release                       |
 
 Draft and pre-release publishes are ignored so they don't page the whole team.
+
+## GitLab (in addition to GitHub)
+
+The same service handles GitLab releases via a webhook — no GitHub App equivalent
+exists on GitLab, so onboarding is per-project (or per-group):
+
+1. Set `GITLAB_WEBHOOK_SECRET` (a secret you choose) and `GITLAB_TOKEN` (a token
+   with `read_repository`) in the app's environment. For self-managed GitLab, set
+   `GITLAB_URL`.
+2. In the GitLab **project or group → Settings → Webhooks**, add a webhook:
+   - **URL:** `https://<your-host>/gitlab`
+   - **Secret token:** the same value as `GITLAB_WEBHOOK_SECRET`
+   - **Trigger:** _Releases events_
+3. Add `releaseBuddy.config.json` to the project root (same schema as GitHub).
+4. Create a release — Release Buddy fetches the config via the GitLab API and
+   notifies through the shared core.
+
+Requests with a missing/mismatched token get `401`; non-release or non-`create`
+events are acknowledged and ignored.
 
 ## Local development
 
