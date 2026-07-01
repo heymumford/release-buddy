@@ -1,0 +1,22 @@
+{
+	"teamName": "Example Team",
+	"slackSettings": {
+		"enabled": true,
+		"slackWebhookUrl": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+		"userName": "Release Buddy",
+		"channels": ["#releases"],
+		"iconEmoji": ":ship:",
+		"shipEmojis": ":ship: :ship_it_parrot: :rocket: :ship_it_parrot: :ship:"
+	},
+	"emailSettings": {
+		"enabled": true,
+		"to": {
+			"name": "Release Buddy",
+			"email": "no-reply@example.com"
+		},
+		"from": {
+			"name": "Release Buddy",
+			"email": "releases@example.com"
+		}
+	}
+}
