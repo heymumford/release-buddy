@@ -79,4 +79,26 @@ describe('dispatch (shared notifier core)', () => {
 		expect(slackNotify).toHaveBeenCalledTimes(1)
 		expect(log.error).toHaveBeenCalledTimes(1)
 	})
+
+	test('binds repo + tag to a child logger when available', async () => {
+		slackNotify.mockResolvedValue(undefined) // self-contained: ensure success path
+		const child = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
+		const parent = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), child: vi.fn(() => child) }
+		await dispatch({
+			log: parent,
+			config: { slackSettings: { enabled: true } },
+			releaseDetails,
+			repositoryName: 'repo',
+		})
+		expect(parent.child).toHaveBeenCalledWith({ repo: 'repo', tag: 'v1.0.0' })
+		expect(child.info).toHaveBeenCalled()
+		expect(parent.info).not.toHaveBeenCalled()
+	})
+
+	test('falls back to the plain logger when child() is absent', async () => {
+		// `log` in these tests has no child(); the run() above already exercised
+		// the fallback path, so simply assert no throw and normal delivery.
+		await expect(run({ slackSettings: { enabled: true } })).resolves.toBeUndefined()
+		expect(slackNotify).toHaveBeenCalledTimes(1)
+	})
 })

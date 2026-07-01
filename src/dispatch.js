@@ -31,27 +31,31 @@ const deliver = (fn) => withRetry(fn, { retries: RETRIES, isRetryable: isTransie
 /**
  * Run the enabled notifiers for a release. Platform-agnostic: both the GitHub
  * (Probot) and GitLab (webhook) adapters normalize their event to these inputs.
- * Each notifier retries transient failures; a failure in one is logged and never
+ * All log lines carry {repo, tag} so a drop or double-send is greppable. Each
+ * notifier retries transient failures; a failure in one is logged and never
  * stops the others.
  */
 export default async function dispatch({ log, config, releaseDetails, repositoryName }) {
 	const { slackSettings, emailSettings, confluenceSettings, webhookSettings, teamName } = config
 
+	// Structured context: bind repo + tag to every log line for this release.
+	const clog = log.child ? log.child({ repo: repositoryName, tag: releaseDetails?.version }) : log
+
 	if (slackSettings?.enabled === true) {
 		try {
 			await deliver(() => slackNotify(slackSettings, repositoryName, releaseDetails, teamName))
-			log.info('Slack notifications delivered.')
+			clog.info('Slack notifications delivered.')
 		} catch (error) {
-			logError(log, 'Error delivering Slack notification.', error)
+			logError(clog, 'Error delivering Slack notification.', error)
 		}
 	}
 
 	if (emailSettings?.enabled === true) {
 		try {
 			await deliver(() => sendMail(emailSettings, releaseDetails, repositoryName, teamName))
-			log.info('Email notifications delivered.')
+			clog.info('Email notifications delivered.')
 		} catch (error) {
-			logError(log, 'Error sending email.', error)
+			logError(clog, 'Error sending email.', error)
 		}
 	}
 
@@ -60,18 +64,18 @@ export default async function dispatch({ log, config, releaseDetails, repository
 			await deliver(() =>
 				writeConfluence(confluenceSettings, releaseDetails, repositoryName, teamName)
 			)
-			log.info('Confluence wiki page written.')
+			clog.info('Confluence wiki page written.')
 		} catch (error) {
-			logError(log, 'Error writing Confluence wiki.', error)
+			logError(clog, 'Error writing Confluence wiki.', error)
 		}
 	}
 
 	if (webhookSettings?.enabled === true) {
 		try {
 			await deliver(() => webhookNotify(webhookSettings, repositoryName, releaseDetails, teamName))
-			log.info('Webhook notification delivered.')
+			clog.info('Webhook notification delivered.')
 		} catch (error) {
-			logError(log, 'Error delivering webhook notification.', error)
+			logError(clog, 'Error delivering webhook notification.', error)
 		}
 	}
 }
