@@ -1,6 +1,6 @@
 {
 	"name": "release-buddy",
-	"version": "2.2.0-next.1",
+	"version": "2.2.0",
 	"private": true,
 	"type": "module",
 	"description": "GitHub App that fans out release notes to Slack, email, and Confluence when you publish a release.",
