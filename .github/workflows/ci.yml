@@ -34,9 +34,10 @@ jobs:
 
   security:
     runs-on: ubuntu-latest
+    # contents: read only — no npm install runs here, so untrusted PR code is
+    # never executed, and no write scope is exposed to a third-party action.
     permissions:
       contents: read
-      pull-requests: write # let gitleaks post a findings comment on the PR
     steps:
       - uses: actions/checkout@v7
         with:
@@ -45,12 +46,13 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22.x
-          cache: npm
-      - run: npm ci
+      # npm audit reads package-lock.json directly — no `npm ci`, so this job
+      # never runs a PR's dependency lifecycle scripts.
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
       - name: Secret scan (gitleaks)
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
+          GITLEAKS_ENABLE_COMMENTS: 'false' # uniform behavior on fork + internal PRs
