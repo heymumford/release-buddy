@@ -1,0 +1,9 @@
+ignore:
+  - node_modules
+  - coverage
+  - dist
+
+github:
+  request_review: false
+  ignore_labels:
+    - sourcery-ignore

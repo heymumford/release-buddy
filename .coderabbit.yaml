@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  path_filters:
+    - '!**/node_modules/**'
+    - '!**/coverage/**'
+    - '!**/dist/**'
+    - '!**/*.min.js'
+    - '!package-lock.json'
+  path_instructions:
+    - path: '**/*.{js,mjs,cjs}'
+      instructions: >
+        ESM Node (>=20), global fetch. Flag swallowed promise rejections and
+        fire-and-forget async in loops. Prefer optional chaining over unguarded
+        deep property access in catch blocks. Tests use Vitest.
+chat:
+  auto_reply: true

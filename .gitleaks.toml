@@ -1,0 +1,15 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Generated/vendored trees and example placeholders that look like secrets but are not."
+paths = [
+    '''(^|/)node_modules/''',
+    '''(^|/)coverage/''',
+    '''(^|/)dist/''',
+    '''package-lock\.json''',
+]
+regexes = [
+    # Placeholder Slack webhook used in docs, config sample, and test fixtures.
+    '''hooks\.slack\.com/services/YOUR/WEBHOOK/URL''',
+]
