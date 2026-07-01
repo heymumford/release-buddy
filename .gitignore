@@ -1,8 +1,6 @@
-.serverless
 .vscode
 node_modules
 npm-debug.log
 *.pem
 .env
-package-lock.json
 coverage

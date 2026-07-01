@@ -1,85 +1,108 @@
 # Release Buddy
 
-Release buddy helps to orchestrate some of the common tasks needed when releasing code, such as Slack notifications.
+Release Buddy is a [GitHub App](https://probot.github.io) that fans out release
+notes when you publish a GitHub release. When a release is published, it can:
 
-> A GitHub App built with [Probot](https://probot.github.io).
+- post to one or more **Slack** channels,
+- send an **email** via SendGrid, and
+- create a **Confluence** page.
 
-## Docs
+Each notifier is opt-in per repository through a `releaseBuddy.config.json` file.
 
-This is the repository for the **Release Buddy** Github bot. Release Buddy is intended to streamline the communication around your release.
+> Modernized fork of [`ecobee/release-buddy`](https://github.com/ecobee/release-buddy)
+> (ISC). This fork targets Probot 14, Node 20+, and ESM; drops the abandoned
+> Google Cloud Functions deployment path; replaces the callback-based Confluence
+> client with the Confluence REST API; and fixes several notification bugs.
 
-### Application structure
+## How it works
 
-`handler.js`: When you deploy this to a cloud function on GCP, handler.js will be the official entry point.
+`index.js` is the Probot app. It listens for `release.published` and dispatches
+to the enabled notifiers in `src/`:
 
-`index.js`: handler is really just a wrapper around the index file, which serves the bulk of the application code. When you run the application locally, it is being served by index.js.
+| File                     | Responsibility                                          |
+| ------------------------ | ------------------------------------------------------- |
+| `src/getConfig.js`       | Read `releaseBuddy.config.json` from the releasing repo |
+| `src/slackNotify.js`     | Post to every configured Slack channel                  |
+| `src/sendMail.js`        | Send the release notes via SendGrid                     |
+| `src/writeConfluence.js` | Create a Confluence page for the release                |
 
-### Local Development setup
+Draft and pre-release publishes are ignored so they don't page the whole team.
 
-- Install the dependencies.
+## Local development
+
+Requires Node 20+ (see `.nvmrc`).
 
 ```sh
-# Install dependencies
-yarn install
-
-# Run the bot
-yarn start
+npm install
+cp .env.example .env   # fill in your GitHub App + notifier credentials
+npm start              # or: npm run dev  (auto-reload)
 ```
 
-- Visit the url that is created when you run your setup and follow the instructions to setup your github app. The webhook url can be your local smee url for now, but you will eventually want to replace this with the GCF url once you deploy it to GCP.
+Follow the Probot startup URL to register a GitHub App, point its webhook at
+your [smee.io](https://smee.io/new) proxy, and set `WEBHOOK_PROXY_URL` in `.env`.
 
-- Add the required environment variables from the `.env.example` file to a `.env` file in the root folder.
+Run the tests:
 
-- Setup serverless to work with your GCP account. See the [Quick Start](https://serverless.com/framework/docs/providers/google/guide/quick-start#pre-requisites) guide.
+```sh
+npm test               # vitest
+npm run test:coverage  # with coverage
+npm run lint           # prettier --check
+```
 
-- Deploy the function using `yarn deploy`.
+## Deployment
 
-- Update the webhook url Github App you created earlier in your [Developer settings](https://github.com/settings/apps). Select the app name you created, and edit the **Webhook URL** field to the URL of the GCF you deployed.
+Release Buddy runs as a standard Probot Node server — deploy it anywhere that
+runs a container or a Node process.
 
-### Using Release Buddy in your project
+```sh
+docker build -t release-buddy .
+docker run -p 3000:3000 --env-file .env release-buddy
+```
 
-Once you have setup the Release Buddy GCF and created the Github App, you can add Release Buddy to your Github projects following the directions below.
+Set the GitHub App webhook URL to your deployment's `/api/github/webhooks`
+endpoint.
 
-- Add a `releaseBuddy.config.json` file to the root of your projects. See the configuration details below.
+## Per-repository configuration
 
-```json
+Add a `releaseBuddy.config.json` to the root of each repo you want notified:
+
+```jsonc
 {
-	"teamName": "Consumer Website Team", // Enter the name of your team.
+	"teamName": "Consumer Website Team",
 	"slackSettings": {
-		"enabled": true, // enable/disable the Slack notifier
-		"slackWebhookUrl": "https://hooks.slack.com/your-slack-webhook-url-here", // your Slack webhook url
-		"userName": "Release Buddy", // Slackbot user name
-		"channels": ["#channel-name", "#channel-2-name"], // array of slack channels to notify
-		"iconEmoji": ":wordpress:", // This will be the Slackbot user's profile image.
-		"shipEmojis": ":ship: :ship_it_parrot: :rocket: :ship_it_parrot: :ship:" // These will appear in the slack message to add some pizazz to your release message
+		"enabled": true,
+		"slackWebhookUrl": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+		"userName": "Release Buddy",
+		"channels": ["#releases", "#team-web"],
+		"iconEmoji": ":ship:",
+		"shipEmojis": ":ship: :rocket: :ship:",
 	},
 	"emailSettings": {
-		"enabled": true, // enable/disable the email notifier
-		// Sendgrid api docs for formatting: https://sendgrid.com/docs/API_Reference/Web_API_v3/Mail/index.html
-		"to": {
-			"name": "Release Buddy", // Replace with any name.
-			"email": "no-reply@company.com" // Replace with email of your choice.
-		},
-		"bcc": ["email@company.com"], // Array of emails to notify
-		"from": {
-			"name": "Release Buddy", // Replace with any name.
-			"email": "no-reply@company.com" // Replace with email of your choice.
-		}
+		"enabled": true,
+		"to": { "name": "Release Buddy", "email": "no-reply@example.com" },
+		"bcc": ["team@example.com"],
+		"from": { "name": "Release Buddy", "email": "releases@example.com" },
 	},
 	"confluenceSettings": {
-		"enabled": true, // enable/disable the confluence notifier
-		"space": "12345", // Replace with your preferred confluence space
-		"parentId": "12345" // A null value will cause the page to be added under the space's home page
-	}
+		"enabled": true,
+		"space": "REL",
+		"parentId": "12345",
+	},
 }
 ```
 
-- Publish a new release on your repo at `https://github.com/{github_user}/{repo_name}/releases/new`. Any markdown you include in the body of this release, as well as the **Tag Version** and **Release Title**, will be used in the Slackbot message and email notification.
+Any notifier with `"enabled": false` (or omitted) is skipped. Slack webhook URLs
+live in this per-repo file; SendGrid and Confluence credentials live in the
+server's environment (see `.env.example`).
 
-Your team will now be notified at the channels and emails you have configured.
+Then publish a release at `https://github.com/{owner}/{repo}/releases/new`. The
+tag, title, and markdown body are used in every notification.
 
 ## Contributing
 
-If you have suggestions for how Release Buddy could be improved, or want to report a bug, open an issue! We'd love all and any contributions.
+Bugs and ideas welcome — open an issue or a PR. See the
+[Contributing Guide](CONTRIBUTING.md).
 
-For more, check out the [Contributing Guide](CONTRIBUTING.md).
+## License
+
+ISC. Original work © 2019 ecobee Inc.; modernization by heymumford.

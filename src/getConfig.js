@@ -1,26 +1,31 @@
+/**
+ * Read and parse the repository's Release Buddy config file.
+ * Returns the parsed object, or undefined if it is missing or invalid.
+ *
+ * @param {import('probot').Logger} log
+ * @param {import('probot').Context} context
+ * @param {string} configPath
+ */
 const getConfig = async (log, context, configPath) => {
-	log(`Getting configuration from the repository's ${configPath} file.`)
+	log.info(`Loading configuration from ${configPath}.`)
 
 	try {
-		const file = await context.github.repos.getContent(
-			context.repo({
-				path: configPath,
-			})
-		)
-		if (!file) {
-			log(`Could not retrieve configuration details from the repository's ${configPath}`)
+		const file = await context.octokit.repos.getContent(context.repo({ path: configPath }))
+
+		// A directory (or a symlink/submodule) comes back as an array or without
+		// `content`; only a regular file carries base64 content we can parse.
+		if (!file?.data || Array.isArray(file.data) || typeof file.data.content !== 'string') {
+			log.warn(`${configPath} is not a readable file.`)
 			return undefined
 		}
-		const configContent = Buffer.from(file.data.content, 'base64').toString()
-		const parsedContent = JSON.parse(configContent)
 
-		log('Successfully loaded configuration details.')
-
-		return parsedContent
+		const parsed = JSON.parse(Buffer.from(file.data.content, 'base64').toString('utf8'))
+		log.info('Configuration loaded.')
+		return parsed
 	} catch (error) {
-		log(error)
+		log.warn({ err: error }, `Could not load ${configPath}.`)
 		return undefined
 	}
 }
 
-module.exports = getConfig
+export default getConfig

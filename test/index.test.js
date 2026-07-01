@@ -1,121 +1,118 @@
-const { Application } = require('probot')
-// Requiring our app implementation
-const myProbotApp = require('../index')
+import { describe, beforeEach, afterEach, test, expect, vi } from 'vitest'
+import { Probot, ProbotOctokit } from 'probot'
 
-const releasePublishedPayload = require('./fixtures/release.published.json')
-const { slackEmailAndConfluence, emailOnly, slackOnly, confluenceOnly } = require('./fixtures/releaseBuddy.config')
+import releasePayload from './fixtures/release.published.json' with { type: 'json' }
+import { slackOnly, emailOnly, confluenceOnly, allThree } from './fixtures/configs.js'
 
-const getConfig = require('../src/getConfig')
-const slackNotify = require('../src/slackNotify')
-const sendEmail = require('../src/sendMail')
-const writeConfluence = require('../src/writeConfluence')
+// Mock the notifiers and config loader so index.js dispatch logic is tested in
+// isolation (no network, no GitHub API).
+vi.mock('../src/getConfig.js', () => ({ default: vi.fn() }))
+vi.mock('../src/slackNotify.js', () => ({ default: vi.fn().mockResolvedValue(undefined) }))
+vi.mock('../src/sendMail.js', () => ({ default: vi.fn().mockResolvedValue(undefined) }))
+vi.mock('../src/writeConfluence.js', () => ({ default: vi.fn().mockResolvedValue(undefined) }))
 
-jest.mock('../src/getConfig')
-jest.mock('../src/slackNotify')
-jest.mock('../src/sendMail')
-jest.mock('../src/writeConfluence')
+import getConfig from '../src/getConfig.js'
+import slackNotify from '../src/slackNotify.js'
+import sendMail from '../src/sendMail.js'
+import writeConfluence from '../src/writeConfluence.js'
+import app from '../index.js'
 
-describe('My Probot app', () => {
-	let app
-	let github
+const withRelease = (overrides) => ({
+	...releasePayload,
+	release: { ...releasePayload.release, ...overrides },
+})
+
+// pino's default transport doesn't initialize synchronously under vitest's
+// worker pool, so probot.log can be null. Inject a deterministic stub.
+const stubLog = () => {
+	const log = {}
+	for (const level of ['trace', 'debug', 'info', 'warn', 'error', 'fatal']) log[level] = () => {}
+	log.child = () => log
+	return log
+}
+
+describe('Release Buddy dispatch', () => {
+	let probot
 
 	beforeEach(() => {
-		app = new Application()
-		// Initialize the app based on the code from index.js
-		app.load(myProbotApp)
-		// This is an easy way to mock out the GitHub API
-		github = {
-			issues: {
-				createComment: jest.fn().mockReturnValue(Promise.resolve({})),
-			},
-		}
-		// Passes the mocked out GitHub API into out app instance
-		app.auth = () => Promise.resolve(github)
-	})
-
-	afterEach(() => {
-		jest.clearAllMocks()
-	})
-
-	test('calls slackNotify when it is enabled in the settings.', async () => {
-		getConfig.mockReturnValueOnce(slackOnly)
-
-		await app.receive({
-			name: 'release',
-			payload: releasePublishedPayload,
+		probot = new Probot({
+			appId: 1,
+			githubToken: 'test',
+			log: stubLog(),
+			Octokit: ProbotOctokit.defaults({
+				retry: { enabled: false },
+				throttle: { enabled: false },
+			}),
 		})
-
-		expect(slackNotify).toHaveBeenCalled()
+		app(probot)
 	})
 
-	test('does not call slackNotify when it is not enabled in the settings.', async () => {
-		getConfig.mockReturnValueOnce(emailOnly)
+	afterEach(() => vi.clearAllMocks())
 
-		await app.receive({
-			name: 'release',
-			payload: releasePublishedPayload,
-		})
+	const receive = (payload) => probot.receive({ name: 'release', payload })
 
-		expect(slackNotify).not.toHaveBeenCalled()
-	})
-
-	test('calls sendMail when it is enabled in the settings.', async () => {
-		getConfig.mockReturnValueOnce(emailOnly)
-
-		await app.receive({
-			name: 'release',
-			payload: releasePublishedPayload,
-		})
-
-		expect(sendEmail).toHaveBeenCalled()
-	})
-
-	test('does not call sendMail when it is not enabled in the settings.', async () => {
-		getConfig.mockReturnValueOnce(slackOnly)
-
-		await app.receive({
-			name: 'release',
-			payload: releasePublishedPayload,
-		})
-
-		expect(sendEmail).not.toHaveBeenCalled()
-	})
-
-	test('calls writeConfluence when it is enabled in the settings.', async () => {
-		getConfig.mockReturnValueOnce(confluenceOnly)
-
-		await app.receive({
-			name: 'release',
-			payload: releasePublishedPayload,
-		})
-
-		expect(writeConfluence).toHaveBeenCalled()
-	})
-
-	test('does not call writeConfluence when it is not enabled in the settings.', async () => {
-		getConfig.mockReturnValueOnce(slackOnly)
-
-		await app.receive({
-			name: 'release',
-			payload: releasePublishedPayload,
-		})
-
+	test('calls only the enabled notifiers (slack)', async () => {
+		getConfig.mockResolvedValueOnce(slackOnly)
+		await receive(releasePayload)
+		expect(slackNotify).toHaveBeenCalledTimes(1)
+		expect(sendMail).not.toHaveBeenCalled()
 		expect(writeConfluence).not.toHaveBeenCalled()
 	})
 
-	test('it calls both sendEmail, slackNotify and writeConfluence when enabled in the settings.', async () => {
-		getConfig.mockReturnValueOnce(slackEmailAndConfluence)
+	test('calls only the enabled notifiers (email)', async () => {
+		getConfig.mockResolvedValueOnce(emailOnly)
+		await receive(releasePayload)
+		expect(sendMail).toHaveBeenCalledTimes(1)
+		expect(slackNotify).not.toHaveBeenCalled()
+	})
 
-		await app.receive({
-			name: 'release',
-			payload: releasePublishedPayload,
-		})
+	test('calls only the enabled notifiers (confluence)', async () => {
+		getConfig.mockResolvedValueOnce(confluenceOnly)
+		await receive(releasePayload)
+		expect(writeConfluence).toHaveBeenCalledTimes(1)
+		expect(slackNotify).not.toHaveBeenCalled()
+	})
 
-		expect(sendEmail).toHaveBeenCalled()
-		expect(slackNotify).toHaveBeenCalled()
-		expect(writeConfluence).toHaveBeenCalled()
+	test('calls all three when all are enabled', async () => {
+		getConfig.mockResolvedValueOnce(allThree)
+		await receive(releasePayload)
+		expect(slackNotify).toHaveBeenCalledTimes(1)
+		expect(sendMail).toHaveBeenCalledTimes(1)
+		expect(writeConfluence).toHaveBeenCalledTimes(1)
+	})
+
+	test('does nothing when no config is present', async () => {
+		getConfig.mockResolvedValueOnce(undefined)
+		await receive(releasePayload)
+		expect(slackNotify).not.toHaveBeenCalled()
+		expect(sendMail).not.toHaveBeenCalled()
+		expect(writeConfluence).not.toHaveBeenCalled()
+	})
+
+	test('skips pre-releases without loading config (issue #5)', async () => {
+		await receive(withRelease({ prerelease: true }))
+		expect(getConfig).not.toHaveBeenCalled()
+		expect(slackNotify).not.toHaveBeenCalled()
+	})
+
+	test('skips drafts', async () => {
+		await receive(withRelease({ draft: true }))
+		expect(getConfig).not.toHaveBeenCalled()
+		expect(slackNotify).not.toHaveBeenCalled()
+	})
+
+	test('a failing notifier does not stop the others', async () => {
+		getConfig.mockResolvedValueOnce(allThree)
+		slackNotify.mockRejectedValueOnce(new Error('slack down'))
+		await receive(releasePayload)
+		// email + confluence still fire despite slack throwing
+		expect(sendMail).toHaveBeenCalledTimes(1)
+		expect(writeConfluence).toHaveBeenCalledTimes(1)
+	})
+
+	test('a network-shaped error (no .response) is handled without a second throw', async () => {
+		getConfig.mockResolvedValueOnce(emailOnly)
+		sendMail.mockRejectedValueOnce(new Error('ECONNRESET')) // no .response.body.errors
+		await expect(receive(releasePayload)).resolves.not.toThrow()
 	})
 })
-
-// For more information about testing with Jest see:
-// https://facebook.github.io/jest/
