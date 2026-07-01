@@ -38,7 +38,9 @@ disclosure.
 
 - SendGrid and Confluence credentials live only in the deployment environment
   (see `.env.example`); they are never committed.
-- Slack webhook URLs are configured per-repository in `releaseBuddy.config.json`
-  in the _consuming_ repo, not in this codebase.
+- Slack webhook URLs should be supplied via `slackWebhookUrlEnv` (an env var name
+  the app reads at runtime), not committed. A literal `slackWebhookUrl` in a
+  committed `releaseBuddy.config.json` is a leaked credential and is rejected by
+  push protection.
 - Draft and pre-release publishes are ignored, reducing accidental notification
   fan-out.

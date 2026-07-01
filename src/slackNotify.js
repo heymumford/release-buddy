@@ -7,11 +7,21 @@ import { slackifyMarkdown } from 'slackify-markdown'
  * swallowed every per-channel error).
  */
 const slackNotify = async (slackSettings, repositoryName, releaseDetails, teamName) => {
-	const { slackWebhookUrl, userName, channels, iconEmoji, shipEmojis } = slackSettings
+	const { slackWebhookUrl, slackWebhookUrlEnv, userName, channels, iconEmoji, shipEmojis } =
+		slackSettings
 	const { name: releaseName, body, url, version } = releaseDetails
 
-	if (!slackWebhookUrl) {
-		throw new Error('Missing slackWebhookUrl in Slack settings.')
+	// Prefer reading the webhook from an environment variable so the secret is
+	// never committed to the (public) config file. Falls back to a literal
+	// `slackWebhookUrl` for backward compatibility.
+	const webhook = slackWebhookUrlEnv ? process.env[slackWebhookUrlEnv] : slackWebhookUrl
+
+	if (!webhook) {
+		throw new Error(
+			slackWebhookUrlEnv
+				? `Slack webhook env var ${slackWebhookUrlEnv} is not set.`
+				: 'Missing Slack webhook: set slackWebhookUrlEnv (recommended) or slackWebhookUrl.'
+		)
 	}
 
 	const releaseNotes = slackifyMarkdown(body || '')
@@ -28,7 +38,7 @@ const slackNotify = async (slackSettings, repositoryName, releaseDetails, teamNa
 
 	return Promise.all(
 		targets.map(async (channel) => {
-			const response = await fetch(slackWebhookUrl, {
+			const response = await fetch(webhook, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({

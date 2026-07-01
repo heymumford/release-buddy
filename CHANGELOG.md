@@ -11,6 +11,15 @@ break, not a continuation of any upstream `2.x` (there was none).
 
 ## [Unreleased]
 
+## [2.1.0-next.2] - 2026-06-30
+
+### Added
+
+- `slackWebhookUrlEnv` config field: the Slack webhook is read from a named
+  environment variable at runtime, so the secret is never committed. A literal
+  `slackWebhookUrl` still works for backward compatibility. Committing a webhook
+  is a leaked credential (and is rejected by push protection).
+
 ## [2.1.0-next.1] - 2026-06-30
 
 First release of the maintained fork. The `2.0.0` modernization (ESM, Probot 14)
@@ -54,5 +63,6 @@ the `-next` suffix marks it as a pre-release of the `2.1` line.
 - Scrubbed a live Slack Incoming Webhook URL and personal contact data that
   upstream committed to public history in 2018.
 
-[Unreleased]: https://github.com/heymumford/release-buddy/compare/v2.1.0-next.1...HEAD
+[Unreleased]: https://github.com/heymumford/release-buddy/compare/v2.1.0-next.2...HEAD
+[2.1.0-next.2]: https://github.com/heymumford/release-buddy/compare/v2.1.0-next.1...v2.1.0-next.2
 [2.1.0-next.1]: https://github.com/heymumford/release-buddy/releases/tag/v2.1.0-next.1

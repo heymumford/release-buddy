@@ -48,9 +48,33 @@ describe('slackNotify', () => {
 		expect(JSON.parse(fetch.mock.calls[0][1].body).channel).toBeUndefined()
 	})
 
-	test('throws when the webhook URL is missing', async () => {
+	test('throws when no webhook is configured', async () => {
 		await expect(slackNotify({ channels: ['#one'] }, 'repo', release, 'Team')).rejects.toThrow(
-			/slackWebhookUrl/
+			/slackWebhookUrlEnv/
 		)
+	})
+
+	test('reads the webhook from an env var when slackWebhookUrlEnv is set', async () => {
+		vi.stubEnv('MY_SLACK_HOOK', 'https://hooks.slack.com/services/AA/BB/CC')
+		await slackNotify(
+			{ slackWebhookUrlEnv: 'MY_SLACK_HOOK', channels: ['#one'] },
+			'repo',
+			release,
+			'Team'
+		)
+		expect(fetch).toHaveBeenCalledTimes(1)
+		expect(fetch.mock.calls[0][0]).toBe('https://hooks.slack.com/services/AA/BB/CC')
+		vi.unstubAllEnvs()
+	})
+
+	test('throws a clear error when the named env var is unset', async () => {
+		await expect(
+			slackNotify(
+				{ slackWebhookUrlEnv: 'MISSING_HOOK', channels: ['#one'] },
+				'repo',
+				release,
+				'Team'
+			)
+		).rejects.toThrow(/MISSING_HOOK is not set/)
 	})
 })
