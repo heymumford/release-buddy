@@ -11,6 +11,12 @@ break, not a continuation of any upstream `2.x` (there was none).
 
 ## [Unreleased]
 
+### Added
+
+- Foundation for release **creation** (ADR 0004): conventional-commits parsing
+  with semver bump detection, and next-version computation. Pure, fully
+  unit-tested building blocks; not yet wired into a command.
+
 ## [2.2.0-next.1] - 2026-06-30
 
 ### Added
