@@ -1,6 +1,7 @@
 import slackNotify from './slackNotify.js'
 import sendMail from './sendMail.js'
 import writeConfluence from './writeConfluence.js'
+import webhookNotify from './webhookNotify.js'
 import { withRetry } from './retry.js'
 
 // Log a notifier failure without a second throw. SendGrid surfaces validation
@@ -34,7 +35,7 @@ const deliver = (fn) => withRetry(fn, { retries: RETRIES, isRetryable: isTransie
  * stops the others.
  */
 export default async function dispatch({ log, config, releaseDetails, repositoryName }) {
-	const { slackSettings, emailSettings, confluenceSettings, teamName } = config
+	const { slackSettings, emailSettings, confluenceSettings, webhookSettings, teamName } = config
 
 	if (slackSettings?.enabled === true) {
 		try {
@@ -62,6 +63,15 @@ export default async function dispatch({ log, config, releaseDetails, repository
 			log.info('Confluence wiki page written.')
 		} catch (error) {
 			logError(log, 'Error writing Confluence wiki.', error)
+		}
+	}
+
+	if (webhookSettings?.enabled === true) {
+		try {
+			await deliver(() => webhookNotify(webhookSettings, repositoryName, releaseDetails, teamName))
+			log.info('Webhook notification delivered.')
+		} catch (error) {
+			logError(log, 'Error delivering webhook notification.', error)
 		}
 	}
 }

@@ -3,10 +3,12 @@ import { describe, test, expect, vi, beforeEach } from 'vitest'
 vi.mock('../src/slackNotify.js', () => ({ default: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('../src/sendMail.js', () => ({ default: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('../src/writeConfluence.js', () => ({ default: vi.fn().mockResolvedValue(undefined) }))
+vi.mock('../src/webhookNotify.js', () => ({ default: vi.fn().mockResolvedValue(undefined) }))
 
 import slackNotify from '../src/slackNotify.js'
 import sendMail from '../src/sendMail.js'
 import writeConfluence from '../src/writeConfluence.js'
+import webhookNotify from '../src/webhookNotify.js'
 import dispatch from '../src/dispatch.js'
 
 const log = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
@@ -54,6 +56,12 @@ describe('dispatch (shared notifier core)', () => {
 	test('passes releaseDetails and repositoryName through to notifiers', async () => {
 		await run({ slackSettings: { enabled: true } })
 		expect(slackNotify).toHaveBeenCalledWith({ enabled: true }, 'repo', releaseDetails, undefined)
+	})
+
+	test('calls the webhook notifier when webhookSettings is enabled', async () => {
+		await run({ webhookSettings: { enabled: true, url: 'https://hook/x' } })
+		expect(webhookNotify).toHaveBeenCalledTimes(1)
+		expect(slackNotify).not.toHaveBeenCalled()
 	})
 
 	test('retries a transient (5xx) notifier failure then succeeds', async () => {
