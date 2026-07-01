@@ -95,7 +95,9 @@ Add a `releaseBuddy.config.json` to the root of each repo you want notified:
 	"teamName": "Consumer Website Team",
 	"slackSettings": {
 		"enabled": true,
-		"slackWebhookUrl": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+		// Recommended: name an env var read at runtime — keeps the secret OUT of
+		// the repo. Set that var in the app's environment.
+		"slackWebhookUrlEnv": "SLACK_WEBHOOK_URL",
 		"userName": "Release Buddy",
 		"channels": ["#releases", "#team-web"],
 		"iconEmoji": ":ship:",
@@ -115,9 +117,13 @@ Add a `releaseBuddy.config.json` to the root of each repo you want notified:
 }
 ```
 
-Any notifier with `"enabled": false` (or omitted) is skipped. Slack webhook URLs
-live in this per-repo file; SendGrid and Confluence credentials live in the
-server's environment (see `.env.example`).
+Any notifier with `"enabled": false` (or omitted) is skipped.
+
+**Do not commit your Slack webhook URL.** Prefer `slackWebhookUrlEnv` (the name of
+an environment variable the app reads at runtime) over a literal `slackWebhookUrl`
+in the committed config — a committed webhook is a leaked credential, and on a
+repo with push protection it will be rejected outright. SendGrid and Confluence
+credentials already live only in the server's environment (see `.env.example`).
 
 Then publish a release at `https://github.com/{owner}/{repo}/releases/new`. The
 tag, title, and markdown body are used in every notification.
