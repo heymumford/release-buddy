@@ -1,42 +1,51 @@
-## Contributing
+# Contributing
 
-[fork]: /fork
-[pr]: /compare
+[fork]: https://github.com/heymumford/release-buddy/fork
+[pr]: https://github.com/heymumford/release-buddy/compare
 [style]: https://prettier.io/
 [code-of-conduct]: CODE_OF_CONDUCT.md
 
-Hi there! We're thrilled that you'd like to contribute to this project. Your help is essential for keeping it great.
+Thanks for your interest. This project is a **maintained fork** of
+`ecobee/release-buddy` — see [`FORK.md`](FORK.md) for what that means and
+[`GOVERNANCE.md`](GOVERNANCE.md) for how decisions are made.
 
-Please note that this project is released with a [Contributor Code of Conduct][code-of-conduct]. By participating in this project you agree to abide by its terms.
+By participating you agree to the [Code of Conduct][code-of-conduct].
 
 ## Issues and PRs
 
-If you have suggestions for how this project could be improved, or want to report a bug, open an issue! We'd love all and any contributions. If you have questions, too, we'd love to hear them.
+Open an issue for bugs or ideas — a template will guide you. For anything large,
+open an issue first so we can agree on scope before you build.
 
-We'd also love PRs. If you're thinking of a large PR, we advise opening up an issue first to talk about it, though! Look at the links below if you're not sure how to open a PR.
+Security problems go through [`SECURITY.md`](SECURITY.md), **not** public issues.
 
 ## Submitting a pull request
 
 1. [Fork][fork] and clone the repository.
-2. Configure and install the dependencies: `npm install`.
-3. Make sure the tests pass on your machine: `npm test`.
-4. Check formatting: `npm run lint` (autofix with `npm run format`).
-5. Create a new branch: `git checkout -b my-branch-name`.
-6. Make your change, add tests, and make sure the tests still pass.
-7. Update `.env.example` and the README if you add configuration.
-8. Push to your fork and [submit a pull request][pr].
+2. Install dependencies: `npm install` (Node ≥ 20 — see `.nvmrc`).
+3. Create a branch. We follow a `prefix/short-slug` convention:
+   `bugfix/…`, `feature/…`, `docs/…`, `chore/…`.
+4. Make your change **with tests** and keep it focused — unrelated changes
+   belong in separate PRs.
+5. Run the local gate before pushing:
+   - `npm test` (or `just check`)
+   - `npm run lint` (autofix with `npm run format`)
+6. Update `CHANGELOG.md` under `## [Unreleased]` and, if you touch config,
+   `.env.example` and the README.
+7. Push to your fork and [open a pull request][pr]. Fill in the PR template.
 
-Here are a few things you can do that will increase the likelihood of your pull request being accepted:
+CI (lint + tests on Node 20 and 22) must be green before merge.
 
-- Follow the [style guide][style] (Prettier). Run `npm run lint` to check and `npm run format` to fix.
-- Write and update tests.
-- Keep your changes as focused as possible. If there are multiple changes you would like to make that are not dependent upon each other, consider submitting them as separate pull requests.
-- Write a [good commit message](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
+### Guidelines that raise the odds of a merge
 
-Work in Progress pull requests are also welcome to get feedback early on, or if there is something blocked you.
+- Follow the [style guide][style] (Prettier). `npm run lint` checks it.
+- Write and update tests; test behavior, not implementation.
+- Backward compatibility is preferred. If you must break it, say so in the PR
+  and add a migration note.
+- Write a [good commit message](https://cbea.ms/git-commit/).
+
+Work-in-progress PRs are welcome for early feedback.
 
 ## Resources
 
 - [How to Contribute to Open Source](https://opensource.guide/how-to-contribute/)
-- [Using Pull Requests](https://help.github.com/articles/about-pull-requests/)
-- [GitHub Help](https://help.github.com)
+- [Using Pull Requests](https://docs.github.com/pull-requests)

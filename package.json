@@ -1,7 +1,7 @@
 {
 	"name": "release-buddy",
-	"version": "2.0.0",
-	"private": false,
+	"version": "2.1.0-next.1",
+	"private": true,
 	"type": "module",
 	"description": "GitHub App that fans out release notes to Slack, email, and Confluence when you publish a release.",
 	"author": "Cam Sloan <cam@sloan.ca> (original), heymumford (modernization)",
@@ -25,7 +25,8 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:coverage": "vitest run --coverage",
-		"lint": "prettier --check .",
+		"lint": "prettier --check . && markdownlint-cli2 \"**/*.md\" \"#node_modules\"",
+		"lint:md": "markdownlint-cli2 \"**/*.md\" \"#node_modules\"",
 		"format": "prettier --write ."
 	},
 	"dependencies": {
@@ -37,6 +38,7 @@
 	},
 	"devDependencies": {
 		"@vitest/coverage-v8": "^4.0.16",
+		"markdownlint-cli2": "^0.18.1",
 		"nodemon": "^3.1.9",
 		"prettier": "^3.4.2",
 		"smee-client": "^4.3.1",

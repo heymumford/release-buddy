@@ -1,0 +1,15 @@
+config:
+  MD013: false # line length — prose wraps naturally
+  MD033: false # inline HTML — allow badges / <details>
+  MD041: false # first-line-heading — allow badges/frontmatter
+  MD024:
+    siblings_only: true # allow duplicate headings across changelog sections
+  MD028: false # blank line inside blockquote
+  MD036: false # emphasis used as a label line
+  MD010:
+    code_blocks: false # this repo indents with tabs; allow them in code fences
+globs:
+  - '**/*.md'
+ignores:
+  - node_modules
+  - coverage

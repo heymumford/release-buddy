@@ -1,0 +1,31 @@
+* text=auto eol=lf
+
+*.js   text
+*.mjs  text
+*.cjs  text
+*.json text
+*.yaml text
+*.yml  text
+*.md   text
+*.html text
+*.css  text
+
+# MUST stay LF on every platform
+*.sh           text eol=lf
+Dockerfile     text eol=lf
+Dockerfile.*   text eol=lf
+.editorconfig  text
+.gitignore     text
+.gitattributes text
+
+# Keep the lockfile out of language stats and diffs
+package-lock.json linguist-generated=true
+
+# Defensive binary
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz  binary
