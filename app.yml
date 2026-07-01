@@ -108,11 +108,12 @@ default_permissions:
 name: Release Buddy
 
 # The homepage of your GitHub App.
-# url: https://example.com/
+url: https://github.com/heymumford/release-buddy
 
 # A description of the GitHub App.
-# description: A description of my awesome app
+description: Announces a published release to Slack, email, and Confluence.
 
 # Set to true when your GitHub App is available to the public or false when it is only accessible to the owner of the app.
-# Default: true
-# public: false
+# Default: true. Kept false so minting the app from this manifest does not create
+# a publicly-installable app before that is a deliberate decision.
+public: false
