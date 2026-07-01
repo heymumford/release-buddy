@@ -1,22 +1,41 @@
+import getConfig from './src/getConfig.js'
+import slackNotify from './src/slackNotify.js'
+import sendMail from './src/sendMail.js'
+import writeConfluence from './src/writeConfluence.js'
+
+const CONFIG_PATH = 'releaseBuddy.config.json'
+
+// SendGrid surfaces validation problems under error.response.body.errors, but
+// network/timeout errors have no `response`. Read it defensively so a failure
+// in one notifier never throws a second time inside its own catch block.
+const detail = (error) => error?.response?.body?.errors ?? error
+
 /**
- * This is the entry point for your Probot App.
- * @param {import('probot').Application} app - Probot's Application class.
+ * Release Buddy — Probot app.
+ * On a published (non-draft, non-prerelease) release, notify the configured
+ * Slack channels, email recipients, and Confluence space.
+ *
+ * @param {import('probot').Probot} app
  */
+export default (app) => {
+	app.log.info('Release Buddy loaded.')
 
-const getConfig = require('./src/getConfig')
-const slackNotify = require('./src/slackNotify')
-const sendEmail = require('./src/sendMail')
-const writeConfluence = require('./src/writeConfluence')
-
-module.exports = app => {
-	app.log('Yay, the app was loaded!')
-
-	app.on('release.published', async context => {
-		app.log("Yayyy we released. Now let's do some stuff!")
-
-		const configPath = 'releaseBuddy.config.json'
-		const config = await getConfig(app.log, context, configPath)
+	app.on('release.published', async (context) => {
 		const { release, repository } = context.payload
+
+		// A published pre-release or draft should not page the whole team.
+		if (release.prerelease || release.draft) {
+			app.log.info(`Skipping ${release.prerelease ? 'pre-release' : 'draft'} ${release.tag_name}.`)
+			return
+		}
+
+		const config = await getConfig(app.log, context, CONFIG_PATH)
+		if (!config) {
+			app.log.warn(
+				`No usable configuration at ${CONFIG_PATH}. Check that the file exists and is valid JSON.`
+			)
+			return
+		}
 
 		const releaseDetails = {
 			name: release.name,
@@ -25,78 +44,33 @@ module.exports = app => {
 			version: release.tag_name,
 		}
 
-		if (!config) {
-			app.log(
-				`Error loading release notifier configuration details from ${configPath}. Double check that you have added the necessary settings.`
-			)
-			return
-		}
 		const { slackSettings, emailSettings, confluenceSettings, teamName } = config
 		const { name: repositoryName } = repository
 
-		if (slackSettings && slackSettings.enabled === true) {
-			app.log('Delivering Slack notifications.')
-
+		if (slackSettings?.enabled === true) {
 			try {
-				const responseMsg = await slackNotify(
-					slackSettings,
-					repositoryName,
-					releaseDetails,
-					teamName
-				)
-				app.log('Slack notifications delivered.')
-				app.log(responseMsg)
+				await slackNotify(slackSettings, repositoryName, releaseDetails, teamName)
+				app.log.info('Slack notifications delivered.')
 			} catch (error) {
-				app.log('Error delivering slack notification.')
-				app.log(error)
+				app.log.error({ err: detail(error) }, 'Error delivering Slack notification.')
 			}
 		}
 
-		if (emailSettings && emailSettings.enabled === true) {
-			app.log('Delivering email notifications.')
-
+		if (emailSettings?.enabled === true) {
 			try {
-				const mailResponse = await sendEmail(
-					emailSettings,
-					releaseDetails,
-					repositoryName,
-					teamName
-				)
-				app.log(mailResponse)
-				app.log('Email notifications delivered.')
+				await sendMail(emailSettings, releaseDetails, repositoryName, teamName)
+				app.log.info('Email notifications delivered.')
 			} catch (error) {
-				app.log('Error sending email.')
-				app.log(error)
-
-				if (error.response.body.errors) {
-					app.log(error.response.body.errors)
-				} else {
-					app.log(error)
-				}
+				app.log.error({ err: detail(error) }, 'Error sending email.')
 			}
 		}
 
-		if (confluenceSettings && confluenceSettings.enabled === true) {
-			app.log('Writing confluence wiki pages.')
-
+		if (confluenceSettings?.enabled === true) {
 			try {
-				const confluenceResponse = await writeConfluence(
-					confluenceSettings,
-					releaseDetails,
-					repositoryName,
-					teamName
-				)
-				app.log(confluenceResponse)
-				app.log('Confluence wiki written.')
+				await writeConfluence(confluenceSettings, releaseDetails, repositoryName, teamName)
+				app.log.info('Confluence wiki page written.')
 			} catch (error) {
-				app.log('Error writing confluence wiki.')
-				app.log(error)
-
-				if (error.response.body.errors) {
-					app.log(error.response.body.errors)
-				} else {
-					app.log(error)
-				}
+				app.log.error({ err: detail(error) }, 'Error writing Confluence wiki.')
 			}
 		}
 	})
