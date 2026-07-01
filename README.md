@@ -66,8 +66,10 @@ changelog, and GitHub release, and is documented next.
 
 Beyond _reacting_ to releases, Release Buddy can _create_ them. The `release`
 command reads the commits since the last tag on a GitHub repo, derives the next
-version and changelog from the conventional-commit history (ADR 0004), and
-creates the GitHub release.
+version and changelog from the conventional-commit history
+([ADR 0004](docs/adr/0004-release-creation-toolkit.md)), and creates the GitHub
+release. The command creates **GitHub** releases only; a GitLab release adapter
+exists in the toolkit but is not yet wired to the command.
 
 **Dry run is the default — nothing is created unless you pass `--live`.**
 

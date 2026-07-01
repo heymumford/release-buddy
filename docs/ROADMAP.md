@@ -6,8 +6,9 @@ The fork does two jobs today. It **announces** a release — on `release.publish
 (drafts and pre-releases skipped so no one gets paged for a WIP tag) or a GitLab
 release webhook, it fans the notes out to **Slack, email, and Confluence**, each
 an opt-in notifier reading a tolerant per-repo `releaseBuddy.config.json`. And it
-**creates** a release (ADR 0004) — a `release` command turns commit history into a
-next version, changelog, and GitHub release, dry-run by default. It runs as a
+**creates** a release ([ADR 0004](adr/0004-release-creation-toolkit.md)) — a
+`release` command turns commit history into a next version, changelog, and GitHub
+release, dry-run by default. It runs as a
 Probot 14 ESM app on Node 20/22, ships a container, and carries a real quality
 spine: a full test suite, structured logging + Prometheus metrics, retry-with-
 backoff, config-schema validation, per-notifier error isolation, a CI matrix +
@@ -40,23 +41,23 @@ Business outcome first. Effort S/M/L. No dates, no estimates.
 
 ### Already shipped — do not mistake for future work
 
-| Capability                                                                             | Outcome delivered                                          |
-| -------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| Slack + email + Confluence notifiers                                                   | One release event reaches three destinations               |
-| `release.published` trigger + draft/pre-release guard                                  | No false or premature pages                                |
-| GitLab release webhook (alongside the GitHub app)                                      | One deploy announces releases from both platforms          |
-| Per-repo `releaseBuddy.config.json` (tolerant read)                                    | Teams self-serve config without a redeploy                 |
-| Structured logging + per-notifier try/catch                                            | One failing channel never sinks the others                 |
-| Throw-on-non-2xx in every notifier                                                     | A rejected send is a loud failure, not a silent success    |
-| Retry with bounded backoff (transient-only)                                            | A 429/5xx/network blip no longer silently loses a notice   |
-| JSON Schema validation of config                                                       | A config typo fails loudly instead of dropping silently    |
-| Generic HTTP webhook notifier                                                          | Discord/Opsgenie/raw-Teams reachable with no bespoke code  |
-| Log lines enriched with repo/tag                                                       | A dropped or double-send is greppable in seconds           |
-| Prometheus metrics + `GET /metrics`                                                    | Delivery reliability is measurable, not just believed      |
-| **Release-creation toolkit** (commits → version → changelog; GitHub + GitLab adapters) | Commit history becomes a versioned release plan (ADR 0004) |
-| **`release` CLI** (dry-run default, fail-closed on a bad target)                       | Cut a GitHub release from the command line, safely         |
-| Container + Node 20/22 CI + audit + gitleaks + CodeQL                                  | Deployable and supply-chain-scanned out of the box         |
-| Governance (ADRs, CoC, CONTRIBUTING, SECURITY, semver)                                 | Contributions have a clear, credible on-ramp               |
+| Capability                                                                                                           | Outcome delivered                                                                                  |
+| -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Slack + email + Confluence notifiers                                                                                 | One release event reaches three destinations                                                       |
+| `release.published` trigger + draft/pre-release guard                                                                | No false or premature pages                                                                        |
+| GitLab release webhook (alongside the GitHub app)                                                                    | One deploy announces releases from both platforms                                                  |
+| Per-repo `releaseBuddy.config.json` (tolerant read)                                                                  | Teams self-serve config without a redeploy                                                         |
+| Structured logging + per-notifier try/catch                                                                          | One failing channel never sinks the others                                                         |
+| Throw-on-non-2xx in every notifier                                                                                   | A rejected send is a loud failure, not a silent success                                            |
+| Retry with bounded backoff (transient-only)                                                                          | A 429/5xx/network blip no longer silently loses a notice                                           |
+| JSON Schema validation of config                                                                                     | A config typo fails loudly instead of dropping silently                                            |
+| Generic HTTP webhook notifier                                                                                        | Discord/Opsgenie/raw-Teams reachable with no bespoke code                                          |
+| Log lines enriched with repo/tag                                                                                     | A dropped or double-send is greppable in seconds                                                   |
+| Prometheus metrics + `GET /metrics`                                                                                  | Delivery reliability is measurable, not just believed                                              |
+| **Release-creation toolkit** (commits → version → changelog; GitHub + GitLab release-create adapters, library-level) | Commit history becomes a versioned release plan ([ADR 0004](adr/0004-release-creation-toolkit.md)) |
+| **`release` CLI** (dry-run default, fail-closed on a bad target)                                                     | Cut a **GitHub** release from the command line, safely (GitLab create not yet CLI-wired)           |
+| Container + Node 20/22 CI + audit + gitleaks + CodeQL                                                                | Deployable and supply-chain-scanned out of the box                                                 |
+| Governance (ADRs, CoC, CONTRIBUTING, SECURITY, semver)                                                               | Contributions have a clear, credible on-ramp                                                       |
 
 ### Now — close the create/announce seam
 
@@ -69,6 +70,7 @@ connects the two jobs the tool now has.
 | 1   | **Announce from the `release` CLI's live create**   | One command both cuts a release and notifies the team — no second trigger    | M      | The `release` CLI creates but doesn't yet notify; wiring `dispatch` in closes ADR 0004's create+announce loop |
 | 2   | **Request timeout / abort on the GitHub API calls** | The CLI (and any CI job running it) fails fast instead of hanging on a stall | S      | Thread an `AbortSignal` into the commit read + release create; matches fail-closed                            |
 | 3   | **`--validate-config` CLI**                         | Maintainers catch a broken config before commit, not after a missed release  | S      | Reuses the shipped schema; a second, safe entry point on the same core                                        |
+| 4   | **Wire the GitLab create adapter to the CLI**       | The `release` command cuts GitLab releases too, not just GitHub              | S      | The `createGitlabRelease` adapter is built and tested but not yet reachable from any trigger                  |
 
 ### Next — expands value once the trust floor is set
 
