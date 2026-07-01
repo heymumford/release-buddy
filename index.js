@@ -5,10 +5,12 @@ import writeConfluence from './src/writeConfluence.js'
 
 const CONFIG_PATH = 'releaseBuddy.config.json'
 
-// SendGrid surfaces validation problems under error.response.body.errors, but
-// network/timeout errors have no `response`. Read it defensively so a failure
-// in one notifier never throws a second time inside its own catch block.
-const detail = (error) => error?.response?.body?.errors ?? error
+// Log a notifier failure without a second throw. SendGrid surfaces validation
+// problems under error.response.body.errors, but network/timeout errors have no
+// `response`, so read it defensively — and keep the original Error as `err` so
+// the stack trace survives.
+const logError = (app, message, error) =>
+	app.log.error({ err: error, detail: error?.response?.body?.errors }, message)
 
 /**
  * Release Buddy — Probot app.
@@ -52,7 +54,7 @@ export default (app) => {
 				await slackNotify(slackSettings, repositoryName, releaseDetails, teamName)
 				app.log.info('Slack notifications delivered.')
 			} catch (error) {
-				app.log.error({ err: detail(error) }, 'Error delivering Slack notification.')
+				logError(app, 'Error delivering Slack notification.', error)
 			}
 		}
 
@@ -61,7 +63,7 @@ export default (app) => {
 				await sendMail(emailSettings, releaseDetails, repositoryName, teamName)
 				app.log.info('Email notifications delivered.')
 			} catch (error) {
-				app.log.error({ err: detail(error) }, 'Error sending email.')
+				logError(app, 'Error sending email.', error)
 			}
 		}
 
@@ -70,7 +72,7 @@ export default (app) => {
 				await writeConfluence(confluenceSettings, releaseDetails, repositoryName, teamName)
 				app.log.info('Confluence wiki page written.')
 			} catch (error) {
-				app.log.error({ err: detail(error) }, 'Error writing Confluence wiki.')
+				logError(app, 'Error writing Confluence wiki.', error)
 			}
 		}
 	})

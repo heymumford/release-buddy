@@ -44,6 +44,12 @@ describe('sendMail', () => {
 		)
 	})
 
+	test('throws when from is present but has no email address', async () => {
+		await expect(
+			sendMail({ to: email.to, from: { name: 'No Email' } }, release, 'repo', 'Team')
+		).rejects.toThrow(/required fields/)
+	})
+
 	test('throws when the SendGrid key is missing', async () => {
 		vi.stubEnv('SENDGRID_API_KEY', '')
 		await expect(sendMail(email, release, 'repo', 'Team')).rejects.toThrow(/SENDGRID_API_KEY/)

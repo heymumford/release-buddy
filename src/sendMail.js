@@ -21,8 +21,12 @@ const sendMail = async (emailSettings, releaseDetails, repositoryName, teamName)
 	const { from, to, bcc } = emailSettings
 	const { name: releaseName, body, url, version } = releaseDetails
 
-	if (!from || !to) {
-		throw new Error('Missing required fields (from, to) to send email. Check your configuration.')
+	// `from` must carry an email; `to` may be a string, an object, or an array,
+	// so only require it to be present.
+	if (!from?.email || !to) {
+		throw new Error(
+			'Missing required fields (from.email, to) to send email. Check your configuration.'
+		)
 	}
 
 	const html = boldenHeadings(marked.parse(body || '', { async: false }))

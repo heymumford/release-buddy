@@ -21,7 +21,10 @@ const slackNotify = async (slackSettings, repositoryName, releaseDetails, teamNa
 
 	const text = `${ship} \n\n${teamLine}*Repo:* ${repositoryName} \n\n*Version:* \`${version}\` \n\n${releaseLine}<${url}|View release on GitHub> \n\n${ship}\n\n *Release Notes:*`
 
-	const targets = channels && channels.length ? channels : [undefined]
+	// Tolerate a single channel given as a string instead of an array, and fall
+	// back to the webhook's default channel when none are configured.
+	const list = Array.isArray(channels) ? channels : channels ? [channels] : []
+	const targets = list.length ? list : [undefined]
 
 	return Promise.all(
 		targets.map(async (channel) => {

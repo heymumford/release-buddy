@@ -34,6 +34,20 @@ describe('slackNotify', () => {
 		).rejects.toThrow(/500/)
 	})
 
+	test('tolerates channels given as a single string instead of an array', async () => {
+		await expect(
+			slackNotify({ ...settings, channels: '#one' }, 'repo', release, 'Team')
+		).resolves.toBeDefined()
+		expect(fetch).toHaveBeenCalledTimes(1)
+		expect(JSON.parse(fetch.mock.calls[0][1].body).channel).toBe('#one')
+	})
+
+	test('posts to the default channel when none are configured', async () => {
+		await slackNotify({ ...settings, channels: undefined }, 'repo', release, 'Team')
+		expect(fetch).toHaveBeenCalledTimes(1)
+		expect(JSON.parse(fetch.mock.calls[0][1].body).channel).toBeUndefined()
+	})
+
 	test('throws when the webhook URL is missing', async () => {
 		await expect(slackNotify({ channels: ['#one'] }, 'repo', release, 'Team')).rejects.toThrow(
 			/slackWebhookUrl/
