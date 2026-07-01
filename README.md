@@ -55,6 +55,40 @@ neutral release object and handed to a shared notifier core:
 
 Draft and pre-release publishes are ignored so they don't page the whole team.
 
+## Creating releases (CLI)
+
+Beyond _reacting_ to releases, Release Buddy can _create_ them. The `release`
+command reads the commits since the last tag on a GitHub repo, derives the next
+version and changelog from the conventional-commit history (ADR 0004), and
+creates the GitHub release.
+
+**Dry run is the default — nothing is created unless you pass `--live`.**
+
+```sh
+# Dry run: print the plan (next version + changelog); create nothing.
+npm run release -- --repo <owner>/<name>
+
+# Create the release for real. Requires a token with `contents: write`.
+GITHUB_TOKEN=… npm run release -- --repo <owner>/<name> --live
+```
+
+| Flag                    | Effect                                                                |
+| ----------------------- | --------------------------------------------------------------------- |
+| `--repo <owner>/<name>` | Target repository (required)                                          |
+| `--owner <name>`        | Owner when `--repo` is a bare name; if both are given they must agree |
+| `--live`                | Create the release. Without it, dry run (default)                     |
+| `--no-dry-run`          | Alias for `--live`                                                    |
+| `--current-version <x>` | Override the base version (default: last tag, or `0.0.0` if none)     |
+
+A dry run prints the next version **and the full changelog it would publish**, so
+you can preview the notes before `--live`.
+
+Safety: `--live` without `GITHUB_TOKEN` is refused; a dry run never calls the
+release-create API. A malformed target (bad `--repo`, or `--owner` disagreeing
+with `--repo`) is refused rather than retargeted. When there are no releasable
+commits, the command reports so and exits `0` without creating anything. The next
+version is tagged `v<version>`.
+
 ## GitLab (in addition to GitHub)
 
 The same service handles GitLab releases via a webhook — no GitHub App equivalent

@@ -16,8 +16,18 @@ break, not a continuation of any upstream `2.x` (there was none).
 - Foundation for release **creation** (ADR 0004): conventional-commits parsing
   with semver bump detection, next-version computation, Keep a Changelog section
   generation, and release-creation adapters (GitHub + GitLab), plus a pure planRelease
-  orchestrator (commits + version -> next version + changelog). Pure, fully unit-tested building blocks; not yet wired into a
-  command.
+  orchestrator (commits + version -> next version + changelog). Pure, fully unit-tested building blocks.
+- **`release` command** (`bin/release.js`, exposed as the `release-buddy` bin).
+  Wires the creation toolkit to a runnable trigger for a GitHub repo: reads the
+  commits since the last tag, computes the next version and changelog, and — only
+  with `--live` and a `GITHUB_TOKEN` — creates the GitHub release. **Dry run is
+  the default:** without `--live` nothing is created and the network release API
+  is never called; the dry run prints the changelog it would publish so the notes
+  can be previewed. Fails closed on a bad target: refuses `--live` without a token,
+  refuses a missing/malformed `--repo`, and refuses an `--owner` that disagrees
+  with `--repo` rather than releasing against the wrong repo. A GitHub API error
+  reports a clean message and exits with status `1` instead of a raw stack. See
+  the README "Creating releases" section.
 
 ## [2.2.0-next.1] - 2026-06-30
 
