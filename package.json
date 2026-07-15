@@ -35,7 +35,7 @@
 	},
 	"dependencies": {
 		"@sendgrid/mail": "^8.1.6",
-		"marked": "^18.0.5",
+		"marked": "^18.0.6",
 		"probot": "^14.3.2",
 		"remove-markdown": "^0.6.4",
 		"slackify-markdown": "^5.0.0"
